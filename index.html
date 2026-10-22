@@ -1,10 +1,10 @@
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Bike Fuel Monitoring System</title>
+  <script src="https://unpkg.com/mqtt/dist/mqtt.min.js"></script>
   <style>
     body {
       font-family: Arial, sans-serif;
@@ -26,38 +26,95 @@
     }
     .label { color: #94a3b8; }
     .value { font-size: 28px; margin-top: 12px; }
+    #status { margin-top: 20px; color: #fbbf24; }
   </style>
 </head>
 <body>
   <h1>🏍️ Bike Fuel Monitoring System</h1>
-  <p>ESP32 Diesel Temperature & Tilt Dashboard</p>
-
+  <p>ESP32 Diesel Temperature &amp; Tilt Dashboard</p>
   <div class="grid">
-    <div class="card">
-      <div class="label">Diesel Temperature</div>
-      <div class="value" id="temp">Waiting...</div>
-    </div>
-    <div class="card">
-      <div class="label">Estimated Diesel Volume</div>
-      <div class="value" id="volume">Waiting...</div>
-    </div>
-    <div class="card">
-      <div class="label">Expansion / Contraction</div>
-      <div class="value" id="change">Waiting...</div>
-    </div>
-    <div class="card">
-      <div class="label">Pitch</div>
-      <div class="value" id="pitch">Waiting...</div>
-    </div>
-    <div class="card">
-      <div class="label">Roll</div>
-      <div class="value" id="roll">Waiting...</div>
-    </div>
-    <div class="card">
-      <div class="label">Tilt Status</div>
-      <div class="value" id="tilt">Waiting...</div>
-    </div>
+    <div class="card"><div class="label">Diesel Temperature</div><div class="value" id="temp">Waiting...</div></div>
+    <div class="card"><div class="label">Estimated Diesel Volume</div><div class="value" id="volume">Waiting...</div></div>
+    <div class="card"><div class="label">Expansion / Contraction</div><div class="value" id="change">Waiting...</div></div>
+    <div class="card"><div class="label">Pitch</div><div class="value" id="pitch">Waiting...</div></div>
+    <div class="card"><div class="label">Roll</div><div class="value" id="roll">Waiting...</div></div>
+    <div class="card"><div class="label">Tilt Status</div><div class="value" id="tilt">Waiting...</div></div>
   </div>
+  <p id="status">Connecting to MQTT...</p>
+  <script>
+    // Replace these placeholders with your HiveMQ cluster details.
+    const HOST = "YOUR_CLUSTER_HOST";
+    const USERNAME = "YOUR_READ_ONLY_USERNAME";
+    const PASSWORD = "YOUR_READ_ONLY_PASSWORD";
+    const statusEl = document.getElementById("status");
+    if (
+      HOST === "YOUR_CLUSTER_HOST" ||
+      USERNAME === "YOUR_READ_ONLY_USERNAME" ||
+      PASSWORD === "YOUR_READ_ONLY_PASSWORD"
+    ) {
+      statusEl.textContent =
+        "Setup required: enter your HiveMQ host and dashboard read-only credentials.";
+    } else {
+      const client = mqtt.connect(`wss://${HOST}:8884/mqtt`, {
+        username: USERNAME,
+        password: PASSWORD,
+        clientId: "bike-dashboard-" +
+          Math.random().toString(16).slice(2, 10),
+        clean: true,
+        connectTimeout: 10000,
+        reconnectPeriod: 5000
+      });
+      client.on("connect", () => {
+        statusEl.textContent = "Connected. Waiting for ESP32 sensor data...";
+        client.subscribe("bike01/telemetry", (err) => {
+          if (err) statusEl.textContent = "Subscription failed: " + err.message;
+        });
+        client.subscribe("bike01/status");
+      });
+      client.on("message", (topic, message) => {
+        const text = message.toString();
+        if (topic === "bike01/status") {
+          statusEl.textContent = "Device status: " + text;
+          return;
+        }
+        try {
+          const d = JSON.parse(text);
+          if (d.sensor_error) {
+            statusEl.textContent = "Sensor error: " + d.sensor_error;
+            return;
+          }
+          document.getElementById("temp").textContent =
+            Number(d.temperature_c).toFixed(2) + " °C";
+          document.getElementById("volume").textContent =
+            Number(d.estimated_thermal_volume_litres).toFixed(3) + " L";
+          document.getElementById("change").textContent =
+            Number(d.thermal_volume_change_litres).toFixed(3) +
+            " L (" + Number(d.thermal_volume_change_percent).toFixed(3) + "%)";
+          document.getElementById("pitch").textContent =
+            Number(d.pitch_deg).toFixed(2) + "°";
+          document.getElementById("roll").textContent =
+            Number(d.roll_deg).toFixed(2) + "°";
+          document.getElementById("tilt").textContent =
+            d.tilt_within_limits === true ? "Within limits" :
+            d.tilt_within_limits === false ? "Tilt detected" : "Unknown";
+          statusEl.textContent =
+            "Live data received: " + new Date().toLocaleTimeString() +
+            ". Thermal volume is an estimate, not a direct fuel measurement.";
+        } catch (e) {
+          statusEl.textContent = "Received a message that could not be parsed.";
+        }
+      });
+      client.on("error", (err) => {
+        statusEl.textContent = "MQTT connection error. Check host and credentials.";
+        console.error(err);
+      });
+      client.on("offline", () => {
+        statusEl.textContent = "Dashboard offline. Retrying connection...";
+      });
+    }
+  </script>
+</body>
+</html>
 
   <p id="status">Website loaded. Live data connection is not configured yet.</p>
 </body>
