@@ -1,0 +1,64 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Bike Fuel Monitoring System</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background: #101827;
+      color: white;
+      margin: 0;
+      padding: 25px;
+    }
+    h1 { color: #38bdf8; }
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      gap: 15px;
+    }
+    .card {
+      background: #1e293b;
+      padding: 22px;
+      border-radius: 12px;
+    }
+    .label { color: #94a3b8; }
+    .value { font-size: 28px; margin-top: 12px; }
+  </style>
+</head>
+<body>
+  <h1>🏍️ Bike Fuel Monitoring System</h1>
+  <p>ESP32 Diesel Temperature & Tilt Dashboard</p>
+
+  <div class="grid">
+    <div class="card">
+      <div class="label">Diesel Temperature</div>
+      <div class="value" id="temp">Waiting...</div>
+    </div>
+    <div class="card">
+      <div class="label">Estimated Diesel Volume</div>
+      <div class="value" id="volume">Waiting...</div>
+    </div>
+    <div class="card">
+      <div class="label">Expansion / Contraction</div>
+      <div class="value" id="change">Waiting...</div>
+    </div>
+    <div class="card">
+      <div class="label">Pitch</div>
+      <div class="value" id="pitch">Waiting...</div>
+    </div>
+    <div class="card">
+      <div class="label">Roll</div>
+      <div class="value" id="roll">Waiting...</div>
+    </div>
+    <div class="card">
+      <div class="label">Tilt Status</div>
+      <div class="value" id="tilt">Waiting...</div>
+    </div>
+  </div>
+
+  <p id="status">Website loaded. Live data connection is not configured yet.</p>
+</body>
+</html>
